@@ -10,8 +10,11 @@ const Conversation = ({ data, setChat, setUserName }) => {
       }}
     >
       <div>
-        {/* <div className="online-dot"></div> */}
-        <img src="./default.png" style={{ width: "50px", height: "50px" }} />
+        <img
+          src="./default.png"
+          alt="person"
+          style={{ width: "50px", height: "50px" }}
+        />
 
         <span
           style={{

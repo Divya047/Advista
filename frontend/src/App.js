@@ -32,7 +32,6 @@ function App() {
   const [profile, setProfile] = useState({});
   const didWsChange = useRef(false);
   const [ws, setWs] = useState(null);
-  const didMount = useRef(false);
   useEffect(() => {
     if (localStorage.length > 0) {
       setisLoggedin(true);

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../utils/api";
 import { jwtDecode } from "jwt-decode";
@@ -35,8 +34,8 @@ function Login({ setIsLoggedIn, setProfile }) {
         alert("Login failed");
       }
     } catch (e) {
-      if (e.response.status == 401) alert("Incorrect Email or Password");
-      else if (e.response.status == 500) alert("Login failed");
+      if (e.response.status === 401) alert("Incorrect Email or Password");
+      else if (e.response.status === 500) alert("Login failed");
       console.log(e);
     }
   }

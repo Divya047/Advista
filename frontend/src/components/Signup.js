@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import validateForm from "../utils/validateForm.js";
 import api from "../utils/api.js";

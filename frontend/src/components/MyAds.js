@@ -12,7 +12,6 @@ import {
   IconButton,
   Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
@@ -21,7 +20,6 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import api from "../utils/api";
 // import IconButton from "@mui/material/";
@@ -30,7 +28,6 @@ import EditIcon from "@mui/icons-material/Edit";
 
 const MyAds = () => {
   const [items, setItems] = useState([]);
-  const navigate = useNavigate();
   const [EditItem, setEditItem] = useState({
     title: "",
     description: "",

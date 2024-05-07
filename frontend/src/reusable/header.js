@@ -17,11 +17,9 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 function Header() {
   const [anchor, setAnchor] = useState(null);
   const [anchorDropDown, setAnchorDropDown] = useState(null);
-  const [anchorDropDown2, setAnchorDropDown2] = useState(null);
 
   const openMenu = Boolean(anchor);
   const openDropDown = Boolean(anchorDropDown);
-  const openDropDown2 = Boolean(anchorDropDown2);
 
   const handleClick = (e) => {
     setAnchor(e.currentTarget);
@@ -31,20 +29,12 @@ function Header() {
     setAnchorDropDown(e.currentTarget);
   };
 
-  const handleClickDropdown2 = (e) => {
-    setAnchorDropDown2(e.currentTarget);
-  };
-
   const handleClose = () => {
     setAnchor(null);
   };
 
   const handleCloseDropdown = () => {
     setAnchorDropDown(null);
-  };
-
-  const handleCloseDropdown2 = () => {
-    setAnchorDropDown2(null);
   };
 
   const tok = localStorage.getItem("login");
@@ -139,7 +129,12 @@ function Header() {
               component={Link}
               to="/home"
             >
-              <img style={{ width: "40px" }} src="./favicon.ico"></img>Advista
+              <img
+                alt="icon"
+                style={{ width: "40px" }}
+                src="./favicon.ico"
+              ></img>
+              Advista
             </Typography>
             <Box sx={{ display: { xs: "none", sm: "block" } }}>
               <ul className="navbar_menu">
