@@ -28,6 +28,7 @@ const ItemsForSale = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const decoded = jwtDecode(localStorage.getItem("login"));
+  const [images, setImages] = useState([]);
 
   /**
    * Handles the change event of the search input field.
@@ -84,6 +85,19 @@ const ItemsForSale = () => {
     setFilterPrice(filter);
   };
 
+  const getImageSrc = async () => {
+    for (let item of filteredItems) {
+      const { data } = await api.get(
+        `ad/upload/${item.image_name}/${new Date().getTime()}`
+      );
+      if (data) {
+        setImages((currentImage) => [
+          ...currentImage,
+          `data:${data.image_type};base64,${data.image_data}`,
+        ]);
+      }
+    }
+  };
   /**
    * Fetches the items from the API.
    */
@@ -100,6 +114,10 @@ const ItemsForSale = () => {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    getImageSrc();
+  }, [items]);
 
   // Filter items based on search query and category
   let filteredItems = items.filter(
@@ -149,24 +167,22 @@ const ItemsForSale = () => {
         </Button>
       </div>
       <Grid container spacing={3} justifyContent="center">
-        {filteredItems.map((item) => (
+        {filteredItems.map((item, index) => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
             <Card sx={{ border: "2px solid #4caf50", borderRadius: "8px" }}>
-              <CardMedia
-                component="img"
-                height="200"
-                image={
-                  process.env.REACT_APP_REQUEST_URL +
-                  "/ad/" +
-                  (item.image[0] || "uploads/default.png")
-                }
-                alt={item.name}
-                sx={{
-                  padding: "1em",
-                  objectFit: "contain",
-                  marginBottom: "0.5em",
-                }}
-              />
+              {images.length > 0 && (
+                <CardMedia
+                  component="img"
+                  height="200"
+                  src={images[index]}
+                  alt={item.name}
+                  sx={{
+                    padding: "1em",
+                    objectFit: "contain",
+                    marginBottom: "0.5em",
+                  }}
+                />
+              )}
               <CardContent>
                 <Typography gutterBottom variant="h5" component="div">
                   {item.title}

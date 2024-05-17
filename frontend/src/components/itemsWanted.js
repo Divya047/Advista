@@ -21,7 +21,7 @@ const ItemsWanted = () => {
   const [filterPrice, setFilterPrice] = useState("");
   const [items, setItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [images, setImages] = useState([]);
   const decoded = jwtDecode(localStorage.getItem("login"));
 
   const navigate = useNavigate();
@@ -67,6 +67,20 @@ const ItemsWanted = () => {
     setFilterPrice(filter);
   };
 
+  const getImageSrc = async () => {
+    for (let item of filteredItems) {
+      const { data } = await api.get(
+        `ad/upload/${item.image_name}/${new Date().getTime()}`
+      );
+      if (data) {
+        setImages((currentImage) => [
+          ...currentImage,
+          `data:${data.image_type};base64,${data.image_data}`,
+        ]);
+      }
+    }
+  };
+
   const fetchItems = async () => {
     try {
       const response = await api.get("/ad");
@@ -78,6 +92,9 @@ const ItemsWanted = () => {
   useEffect(() => {
     fetchItems();
   }, []);
+  useEffect(() => {
+    getImageSrc();
+  }, [items]);
 
   const filteredItems = items.filter(
     (item) =>
@@ -123,20 +140,18 @@ const ItemsWanted = () => {
         Looking for something?
       </Button>
       <Grid container spacing={3} justifyContent="center">
-        {filteredItems.map((item) => (
+        {filteredItems.map((item, index) => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
             <Card sx={{ border: "2px solid #4caf50", borderRadius: "8px" }}>
-              <CardMedia
-                component="img"
-                height="140"
-                image={
-                  process.env.REACT_APP_REQUEST_URL +
-                  "/ad/" +
-                  (item.image[0] || "uploads/default.png")
-                }
-                sx={{ padding: "1em 1em 0 1em", objectFit: "contain" }}
-                alt={item.name}
-              />
+              {images.length > 0 && (
+                <CardMedia
+                  sx={{ padding: "1em", objectFit: "contain" }}
+                  component="img"
+                  height="140"
+                  src={images[index]}
+                  alt={item.name}
+                />
+              )}
               <CardContent>
                 <Typography gutterBottom variant="h5" component="div">
                   {item.title}

@@ -3,55 +3,102 @@ const router = express.Router();
 const createError = require("http-errors");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
+const aws = require("aws-sdk");
+const s3BucketName = "advistaprojectbucket";
+const defaultImage = "default.png";
+aws.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: "ca-central-1",
 });
-const upload = multer({
-  storage: storage,
-  onError: function (err, next) {
-    console.log("error", err);
-    next(err.code, err.message);
-  },
-});
-
+const s3 = new aws.S3();
+const upload = multer();
 const {
   authenticateOwnerToken,
   authenticateUserToken,
 } = require("../middleware");
 const postModel = require("../models/postModel");
 
-//To get the images uploaded by the user for the ads
-router.get("/uploads/:file", (req, res) => {
-  res.sendFile(path.join(__dirname, `../../uploads/${req.params.file}`));
-});
+// Models image data for s3
+const getImageData = (image) => {
+  return [
+    Buffer.from(image.buffer, "binary"),
+    Date.now() + path.extname(image.originalname),
+  ];
+};
+
+const getImageType = (imageName) =>
+  `image/${path.extname(imageName).replace(".", "")}`;
+
+//To get an image uploaded by the user for the ads
+router.get(
+  "/upload/:imageName/:timestamp",
+  authenticateUserToken,
+  async (req, res, next) => {
+    try {
+      const { imageName } = req.params;
+      const params = { Bucket: s3BucketName, Key: imageName };
+      s3.getObject(params, (err, data) => {
+        if (err) {
+          next(createError(500, err.message));
+        }
+        if (data) {
+          imageBufferToBase64 = Buffer.from(data.Body).toString("base64");
+          res.json({
+            image_type: getImageType(imageName),
+            image_data: imageBufferToBase64,
+          });
+        }
+      });
+    } catch (err) {
+      next(createError(500, err.message));
+    }
+  }
+);
 
 //To add a new post in the database
 router.post(
   "/",
+  upload.single("image"),
   authenticateUserToken,
-  upload.array("image", 20),
   async function (req, res, next) {
     try {
+      const image = req.file;
+      let newPost;
       const { title, description, post_person_id, price, category } = req.body;
-      const uploadedImages = [];
-      console.log(req.files);
-      for (const image of req.files) {
-        uploadedImages.push(image.path);
+      if (image) {
+        const [imageBufferToBinary, imageName] = getImageData(image);
+        const uploadParams = {
+          Bucket: s3BucketName,
+          Key: imageName,
+          Body: imageBufferToBinary,
+        };
+        s3.upload(uploadParams, function (err, data) {
+          if (err) {
+            console.log("Errorthis", err);
+          }
+          if (data) {
+            console.log("Upload Success", data.Location);
+          }
+        });
+        newPost = new postModel({
+          title: title,
+          description: description,
+          image_name: imageName,
+          post_person_id: post_person_id,
+          price: price,
+          category: category,
+        });
+      } else {
+        newPost = new postModel({
+          title: title,
+          description: description,
+          image_name: defaultImage,
+          post_person_id: post_person_id,
+          price: price,
+          category: category,
+        });
       }
-      const newPost = new postModel({
-        title: title,
-        description: description,
-        image: uploadedImages,
-        post_person_id: post_person_id,
-        price: price,
-        category: category,
-      });
       const savedPost = await newPost.save();
       res.status(200).json(savedPost);
     } catch (error) {
@@ -63,32 +110,53 @@ router.post(
 //To update an ad in the database
 router.put(
   "/:id/:post_person_id",
+  upload.single("image"),
   authenticateOwnerToken,
-  upload.array("image", 20),
   async function (req, res, next) {
     try {
       const { id } = req.params;
       const { title, description, price, category } = req.body;
-
-      const uploadedImages = [];
-      for (const image of req.files) {
-        uploadedImages.push(image.path);
-      }
-
-      // Delete the old images
-      const oldpost = await postModel.findById(id);
-      for (const image of oldpost.image) {
-        if (uploadedImages.includes(image) === false) {
-          fs.unlinkSync(image);
+      const image = req.file;
+      let post;
+      if (image) {
+        const oldPost = await postModel.findById(id);
+        if (oldPost.image_name != "default.png") {
+          const deleteParams = {
+            Bucket: s3BucketName,
+            Key: oldPost.image_name,
+          };
+          s3.deleteObject(deleteParams, (err) => {
+            if (err) {
+              next(createError(500, err.message));
+            }
+          });
         }
+        const [imageBufferToBinary, imageName] = getImageData(image);
+        const uploadParams = {
+          Bucket: s3BucketName,
+          Key: imageName,
+          Body: imageBufferToBinary,
+        };
+        s3.upload(uploadParams, (err) => {
+          if (err) {
+            next(createError(500, err.message));
+          }
+        });
+        post = await postModel.findByIdAndUpdate(id, {
+          title: title,
+          description: description,
+          image_name: imageName,
+          price: price,
+          category: category,
+        });
+      } else {
+        post = await postModel.findByIdAndUpdate(id, {
+          title: title,
+          description: description,
+          price: price,
+          category: category,
+        });
       }
-      const post = await postModel.findByIdAndUpdate(id, {
-        title: title,
-        description: description,
-        image: uploadedImages,
-        price: price,
-        category: category,
-      });
       res.status(200).json(post);
     } catch (error) {
       if (error.kind === "ObjectId") {
@@ -118,8 +186,16 @@ router.delete(
     try {
       const { id } = req.params;
       const post = await postModel.findById(id);
-      for (const image of post.image) {
-        fs.unlinkSync(image);
+      if (post.image_name != "default.png") {
+        const deleteParams = {
+          Bucket: s3BucketName,
+          Key: post.image_name,
+        };
+        s3.deleteObject(deleteParams, (err) => {
+          if (err) {
+            next(createError(500, err.message));
+          }
+        });
       }
       await postModel.deleteOne({ _id: id });
       res.sendStatus(200);

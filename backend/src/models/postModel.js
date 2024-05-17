@@ -10,8 +10,8 @@ const postSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    image: {
-      type: [String],
+    image_name: {
+      type: String,
       required: true,
     },
     post_person_id: {

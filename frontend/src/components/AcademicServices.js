@@ -23,6 +23,7 @@ const AcademicServicesPage = () => {
   const [items, setItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const decoded = jwtDecode(localStorage.getItem("login"));
+  const [images, setImages] = useState([]);
 
   const navigate = useNavigate();
 
@@ -71,6 +72,26 @@ const AcademicServicesPage = () => {
     setFilterPrice(filter);
   };
 
+  const filteredItems = items.filter(
+    (item) =>
+      (item.title.toLowerCase().includes(searchQuery) ||
+        item.description.toLowerCase().includes(searchQuery)) &&
+      item.category.includes("services")
+  );
+
+  const getImageSrc = async () => {
+    for (let item of filteredItems) {
+      const { data } = await api.get(
+        `ad/upload/${item.image_name}/${new Date().getTime()}`
+      );
+      if (data) {
+        setImages((currentImage) => [
+          ...currentImage,
+          `data:${data.image_type};base64,${data.image_data}`,
+        ]);
+      }
+    }
+  };
   // Function to fetch items from the API
   const fetchItems = async () => {
     try {
@@ -85,14 +106,13 @@ const AcademicServicesPage = () => {
   useEffect(() => {
     fetchItems();
   }, []);
+  useEffect(() => {
+    if (items.length > 0) {
+      getImageSrc();
+    }
+  }, [items]);
 
   // Filter items based on search query and category
-  const filteredItems = items.filter(
-    (item) =>
-      (item.title.toLowerCase().includes(searchQuery) ||
-        item.description.toLowerCase().includes(searchQuery)) &&
-      item.category.includes("services")
-  );
 
   return (
     <Container maxWidth="lg" style={{ marginTop: "20px", textAlign: "center" }}>
@@ -143,7 +163,7 @@ const AcademicServicesPage = () => {
       </div>
       {/* Grid of items */}
       <Grid container spacing={3} justifyContent="center">
-        {filteredItems.map((item) => (
+        {filteredItems.map((item, index) => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
             <Card
               sx={{
@@ -153,17 +173,15 @@ const AcademicServicesPage = () => {
               }}
             >
               {/* Item image */}
-              <CardMedia
-                sx={{ padding: "1em", objectFit: "contain" }}
-                component="img"
-                height="140"
-                image={
-                  process.env.REACT_APP_REQUEST_URL +
-                  "/ad/" +
-                  (item.image[0] || "uploads/default.png")
-                }
-                alt={item.name}
-              />
+              {images.length > 0 && (
+                <CardMedia
+                  sx={{ padding: "1em", objectFit: "contain" }}
+                  component="img"
+                  height="140"
+                  src={images[index]}
+                  alt={item.name}
+                />
+              )}
               <CardContent>
                 {/* Item title */}
                 <Typography gutterBottom variant="h5" component="div">

@@ -25,6 +25,7 @@ import api from "../utils/api";
 // import IconButton from "@mui/material/";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import { useNavigate } from "react-router-dom";
 
 const MyAds = () => {
   const [items, setItems] = useState([]);
@@ -35,11 +36,31 @@ const MyAds = () => {
     category: "academic services",
   });
   const tok = localStorage.getItem("login");
+  const [images, setImages] = useState([]);
+  const navigate = useNavigate();
+
   const decode = jwtDecode(tok);
+
+  const getImageSrc = async () => {
+    for (let item of itemsDisp) {
+      const { data } = await api.get(
+        `ad/upload/${item.image_name}/${new Date().getTime()}`
+      );
+      if (data) {
+        setImages((currentImage) => [
+          ...currentImage,
+          `data:${data.image_type};base64,${data.image_data}`,
+        ]);
+      }
+    }
+  };
 
   useEffect(() => {
     fetchItems();
   }, []);
+  useEffect(() => {
+    getImageSrc();
+  }, [items]);
 
   const handleChange = (e) => {
     setEditItem({ ...EditItem, [e.target.name]: e.target.value });
@@ -75,12 +96,10 @@ const MyAds = () => {
       );
       if (response.status === 200) {
         alert("Ad Changed successfully!");
+        navigate(0);
       } else {
         alert("Ad Change failed");
       }
-      setTimeout(() => {
-        fetchItems();
-      }, 500);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -98,9 +117,7 @@ const MyAds = () => {
 
   const handleDelete = (item) => {
     api.delete(`/ad/${item._id}/${item.post_person_id}`);
-    setTimeout(() => {
-      fetchItems();
-    }, 500);
+    navigate(0);
   };
 
   const handleEdit = (item) => {
@@ -223,20 +240,18 @@ const MyAds = () => {
         MyAds
       </Typography>
       <Grid container spacing={3}>
-        {itemsDisp.map((item) => (
+        {itemsDisp.map((item, index) => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
             <Card sx={{ p: 2 }}>
-              <CardMedia
-                sx={{ padding: "1em 1em 0 1em", objectFit: "contain" }}
-                component="img"
-                height="140"
-                image={
-                  process.env.REACT_APP_REQUEST_URL +
-                  "/ad/" +
-                  (item.image[0] || "uploads/default.png")
-                }
-                alt={item.name}
-              />
+              {images.length > 0 && (
+                <CardMedia
+                  sx={{ padding: "1em 1em 0 1em", objectFit: "contain" }}
+                  component="img"
+                  height="140"
+                  src={images[index]}
+                  alt={itemsDisp.name}
+                />
+              )}
               <Box
                 sx={{
                   justifyContent: "space-between",
