@@ -117,6 +117,7 @@ const MyAds = () => {
 
   const handleDelete = (item) => {
     api.delete(`/ad/${item._id}/${item.post_person_id}`);
+    alert("Post Deleted");
     navigate(0);
   };
 
